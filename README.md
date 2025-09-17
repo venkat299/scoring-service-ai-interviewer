@@ -64,11 +64,11 @@ Use the bundled client script to score multiple interview answers stored in a CS
 
 ```bash
 python -m app.csv_client \
-  --csv-path data/responses.csv \
   --evaluation-type conceptual \
   --provider lm-studio \
   --model-name llama-3 \
-  --base-url http://localhost:1234/v1
+  --base-url http://localhost:1234/v1\
+  --csv-path data/responses.csv 
 ```
 
 The script processes each row sequentially, calling the configured LLM provider, and writes the returned JSON payload to an `evaluation_json` column. It also appends an `overall_score` column—calculated as the average of the dimensional scores—and creates individual `score_<dimension>` columns (five dimensions for conceptual files, six for reasoning files).
@@ -76,12 +76,13 @@ The script processes each row sequentially, calling the configured LLM provider,
 
 ### Docker
 
-Build and run the container:
+Populate the values in `.env`, then let Docker Compose handle the build and runtime configuration:
 
 ```bash
-docker build -t ai-scoring-service .
-docker run -p 8000:8000 --env GEMINI_API_KEY=... ai-scoring-service
+docker compose up --build
 ```
+
+The service will listen on `http://localhost:8000` and automatically receive the environment variables defined in `.env`. When you're done, stop the stack with `docker compose down`.
 
 ## Configuration
 
