@@ -1,0 +1,88 @@
+# AI Interview Scoring Service
+
+This project provides a containerised FastAPI service that scores interview answers using Large Language Models. It supports Google Gemini and LM Studio compatible providers, selects an evaluation rubric based on the question type, and returns structured JSON feedback.
+
+## Features
+
+- FastAPI endpoint `POST /evaluate` for scoring interview responses.
+- Prompt engine that selects a reasoning or conceptual rubric and enforces JSON outputs.
+- Pluggable provider architecture with implementations for Gemini and LM Studio.
+- Robust parsing of model outputs with detailed error handling.
+- Docker image for reproducible deployment.
+
+### Request Payload
+
+The `POST /evaluate` endpoint accepts a JSON body with the following fields:
+
+- `evaluation_type`: either `reasoning` or `conceptual`.
+- `question`: the interview question text.
+- `answer`: the candidate's response.
+- `job_description`: optional context about the role.
+- `resume_context`: optional highlights from the candidate's background.
+- `ideal_answer_key_points`: required when `evaluation_type` is `conceptual`; provide the canonical facts or bullet points the answer should cover.
+- `llm_config`: provider configuration containing the model name and credentials.
+
+## Getting Started
+
+### Prerequisites
+
+- Python 3.11+
+- [Poetry](https://python-poetry.org/) or `pip`
+
+### Installation
+
+```bash
+pip install -r requirements.txt
+```
+
+### Running Locally
+
+1. Export the necessary API keys:
+
+```bash
+export GEMINI_API_KEY="your-key"
+export OPENAI_API_KEY="optional-lm-studio-key"
+```
+
+2. Start the service:
+
+```bash
+uvicorn app.main:app --reload
+```
+
+The API will be available at `http://localhost:8000`. Interactive documentation is available at `/docs`.
+
+### Testing
+
+```bash
+pytest
+```
+
+### Docker
+
+Build and run the container:
+
+```bash
+docker build -t ai-scoring-service .
+docker run -p 8000:8000 --env GEMINI_API_KEY=... ai-scoring-service
+```
+
+## Configuration
+
+Environment variables can be provided via a `.env` file or directly in the environment. The following variables are supported:
+
+- `GEMINI_API_KEY`
+- `OPENAI_API_KEY`
+- `REQUEST_TIMEOUT` (seconds)
+
+## Project Layout
+
+- `app/main.py` – FastAPI application definition.
+- `app/prompts.py` – Prompt templates and prompt engine.
+- `app/llm/` – Provider implementations and factory helpers.
+- `app/utils.py` – JSON parsing helpers.
+- `tests/` – Unit tests.
+
+## License
+
+This project is provided as-is without any specific license.
