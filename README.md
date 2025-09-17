@@ -58,6 +58,22 @@ The API will be available at `http://localhost:8000`. Interactive documentation 
 pytest
 ```
 
+### Batch CSV Evaluation
+
+Use the bundled client script to score multiple interview answers stored in a CSV file. The file must include headers for at least a question and answer column, and all rows must share the same evaluation type (either reasoning or conceptual).
+
+```bash
+python -m app.csv_client \
+  --csv-path data/responses.csv \
+  --evaluation-type conceptual \
+  --provider lm-studio \
+  --model-name llama-3 \
+  --base-url http://localhost:1234/v1
+```
+
+The script processes each row sequentially, calling the configured LLM provider, and writes the returned JSON payload to an `evaluation_json` column. It also appends an `overall_score` column—calculated as the average of the dimensional scores—and creates individual `score_<dimension>` columns (five dimensions for conceptual files, six for reasoning files).
+
+
 ### Docker
 
 Build and run the container:
