@@ -51,3 +51,11 @@ class GeminiProvider(LLMProvider):
             return parse_llm_json_response(text)
         except ResponseParsingError as exc:
             raise LLMProviderError(str(exc)) from exc
+
+    def healthcheck(self) -> None:
+        """Perform a lightweight connectivity check against the Gemini API."""
+        try:
+            # count_tokens is lightweight and validates credentials + model access
+            self._model.count_tokens("ping")
+        except Exception as exc:  # pragma: no cover - upstream errors are surfaced
+            raise LLMProviderError(f"Gemini connectivity check failed: {exc}") from exc

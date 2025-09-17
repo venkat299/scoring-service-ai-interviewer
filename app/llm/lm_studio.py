@@ -49,3 +49,19 @@ class LMStudioProvider(LLMProvider):
             return parse_llm_json_response(content)
         except ResponseParsingError as exc:
             raise LLMProviderError(str(exc)) from exc
+
+    def healthcheck(self) -> None:
+        """Perform a lightweight connectivity check against the LM Studio endpoint."""
+        timeout = self._resolve_timeout(self._settings.default_timeout_seconds)
+        client = self._client.with_options(timeout=timeout)
+        try:
+            models = client.models.list()
+        except Exception as exc:  # pragma: no cover - upstream errors are surfaced
+            raise LLMProviderError(f"LM Studio connectivity check failed: {exc}") from exc
+        # If the API returns an empty list, surface a helpful error
+        try:
+            if not getattr(models, "data", None):
+                raise LLMProviderError("LM Studio reachable but returned no models")
+        except AttributeError:
+            # Unexpected payload shape; still counts as a connectivity/compat issue
+            raise LLMProviderError("LM Studio returned an unexpected models payload")

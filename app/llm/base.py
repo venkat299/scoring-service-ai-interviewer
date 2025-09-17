@@ -26,3 +26,11 @@ class LLMProvider(abc.ABC):
         """Return the timeout to use for outbound requests."""
 
         return self.config.timeout_seconds or default_timeout
+
+    @abc.abstractmethod
+    def healthcheck(self) -> None:
+        """Verify provider connectivity and credentials.
+
+        Implementations should raise :class:`LLMProviderError` with details when
+        the upstream API is unreachable or credentials are invalid.
+        """

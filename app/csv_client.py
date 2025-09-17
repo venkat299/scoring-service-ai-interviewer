@@ -166,6 +166,29 @@ def process_csv_file(
     _write_rows(csv_path, output_fieldnames, rows)
 
 
+def _preflight_check_llm_connection(llm_config: LLMConfig, settings: Settings) -> None:
+    """Verify the LLM provider is reachable before processing the CSV.
+
+    Raises:
+        CSVProcessingError: when the provider cannot be reached or is misconfigured.
+    """
+
+    try:
+        provider = get_llm_provider(llm_config, settings)
+        provider.healthcheck()
+        context = [f"provider={llm_config.provider.value}", f"model={llm_config.model_name}"]
+        if llm_config.base_url is not None:
+            context.append(f"base_url={llm_config.base_url}")
+        print(f"LLM connectivity check succeeded ({', '.join(context)})")
+    except (ValueError, LLMProviderError) as exc:
+        context = [f"provider={llm_config.provider.value}", f"model={llm_config.model_name}"]
+        if llm_config.base_url is not None:
+            context.append(f"base_url={llm_config.base_url}")
+        raise CSVProcessingError(
+            f"LLM connectivity check failed ({', '.join(context)}): {exc}"
+        ) from exc
+
+
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Batch evaluate interview answers from a CSV file.")
     parser.add_argument("--csv-path", required=True, help="Path to the CSV file to process.")
@@ -216,34 +239,45 @@ def _parse_args() -> argparse.Namespace:
 
 
 def main() -> None:
-    args = _parse_args()
-    csv_path = Path(args.csv_path)
-    if not csv_path.exists():
-        raise CSVProcessingError(f"CSV file not found: {csv_path}")
+    import sys
 
-    evaluation_type = EvaluationType(args.evaluation_type)
-    provider_type = ProviderType(args.provider)
+    try:
+        args = _parse_args()
+        csv_path = Path(args.csv_path)
+        if not csv_path.exists():
+            raise CSVProcessingError(f"CSV file not found: {csv_path}")
 
-    llm_config = LLMConfig(
-        provider=provider_type,
-        model_name=args.model_name,
-        api_key=args.api_key,
-        base_url=args.base_url,
-        timeout_seconds=args.timeout,
-        temperature=args.temperature,
-        max_output_tokens=args.max_output_tokens,
-    )
+        evaluation_type = EvaluationType(args.evaluation_type)
+        provider_type = ProviderType(args.provider)
 
-    process_csv_file(
-        csv_path=csv_path,
-        evaluation_type=evaluation_type,
-        llm_config=llm_config,
-        question_column=args.question_column,
-        answer_column=args.answer_column,
-        job_description_column=args.job_description_column,
-        resume_context_column=args.resume_context_column,
-        ideal_answer_column=args.ideal_answer_column,
-    )
+        llm_config = LLMConfig(
+            provider=provider_type,
+            model_name=args.model_name,
+            api_key=args.api_key,
+            base_url=args.base_url,
+            timeout_seconds=args.timeout,
+            temperature=args.temperature,
+            max_output_tokens=args.max_output_tokens,
+        )
+
+        # Load settings and verify LLM connectivity before processing data
+        settings = get_settings()
+        _preflight_check_llm_connection(llm_config, settings)
+
+        process_csv_file(
+            csv_path=csv_path,
+            evaluation_type=evaluation_type,
+            llm_config=llm_config,
+            question_column=args.question_column,
+            answer_column=args.answer_column,
+            job_description_column=args.job_description_column,
+            resume_context_column=args.resume_context_column,
+            ideal_answer_column=args.ideal_answer_column,
+            settings=settings,
+        )
+    except CSVProcessingError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        sys.exit(1)
 
 
 if __name__ == "__main__":  # pragma: no cover - CLI entry point

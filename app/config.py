@@ -2,7 +2,7 @@
 from functools import lru_cache
 from typing import Optional
 
-from pydantic import AliasChoices, Field
+from pydantic import AliasChoices, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -16,6 +16,14 @@ class Settings(BaseSettings):
         default=60,
         validation_alias=AliasChoices("DEFAULT_TIMEOUT_SECONDS", "REQUEST_TIMEOUT"),
     )
+    
+    # Handle empty strings coming from env files (e.g. VAR=)
+    @field_validator("default_timeout_seconds", mode="before")
+    @classmethod
+    def _coerce_timeout(cls, v: Optional[str]) -> int | str | None:  # type: ignore[override]
+        if isinstance(v, str) and v.strip() == "":
+            return 60
+        return v
     # Ignore unrelated env vars present in .env or the environment
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8", extra="ignore"
