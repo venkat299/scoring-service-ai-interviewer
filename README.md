@@ -73,6 +73,7 @@ python -m app.csv_client \
 
 The script processes each row sequentially, calling the configured LLM provider, and writes the returned JSON payload to an `evaluation_json` column. It also appends an `overall_score` column—calculated as the average of the dimensional scores—and creates individual `score_<dimension>` columns (five dimensions for conceptual files, six for reasoning files).
 
+
 ### Docker
 
 Build and run the container:
